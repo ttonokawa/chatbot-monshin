@@ -400,49 +400,40 @@ function toggleSpeechInput(inputEl, micBtn, sendBtn) {
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
-  // Stop any playing audio to avoid conflict
-  if (curAudio) { curAudio.pause(); curAudio.currentTime = 0; soundWave.classList.remove('active'); curAudio = null; }
+  // Stop any playing audio synchronously
+  if (curAudio) { curAudio.pause(); curAudio.src = ''; soundWave.classList.remove('active'); curAudio = null; }
 
-  // Small delay to ensure audio context is released
-  setTimeout(() => {
-    try {
-      const rec = new SR();
-      rec.lang = 'ja-JP';
-      rec.interimResults = true;
-      rec.continuous = false;
-      activeRecognition = rec;
-      micBtn.classList.add('recording');
+  // Must call start() synchronously in click handler for mobile
+  try {
+    const rec = new SR();
+    rec.lang = 'ja-JP';
+    rec.interimResults = true;
+    rec.continuous = false;
+    activeRecognition = rec;
+    micBtn.classList.add('recording');
 
-      rec.onresult = (e) => {
-        let text = '';
-        for (let i = 0; i < e.results.length; i++) {
-          text += e.results[i][0].transcript;
-        }
-        inputEl.value = text;
-        sendBtn.disabled = !text.trim();
-        // Trigger oninput for any listeners
-        inputEl.dispatchEvent(new Event('input'));
-      };
-      rec.onend = () => {
-        micBtn.classList.remove('recording');
-        activeRecognition = null;
-      };
-      rec.onerror = (e) => {
-        console.log('Speech error:', e.error);
-        micBtn.classList.remove('recording');
-        activeRecognition = null;
-        // If error is "not-allowed", retry once after user gesture
-        if (e.error === 'aborted') {
-          // Browser aborted, usually due to audio conflict - safe to ignore
-        }
-      };
-      rec.start();
-    } catch(e) {
-      console.log('Speech start error:', e);
+    rec.onresult = (e) => {
+      let text = '';
+      for (let i = 0; i < e.results.length; i++) {
+        text += e.results[i][0].transcript;
+      }
+      inputEl.value = text;
+      sendBtn.disabled = !text.trim();
+      inputEl.dispatchEvent(new Event('input'));
+    };
+    rec.onend = () => {
       micBtn.classList.remove('recording');
       activeRecognition = null;
-    }
-  }, 300);
+    };
+    rec.onerror = () => {
+      micBtn.classList.remove('recording');
+      activeRecognition = null;
+    };
+    rec.start();
+  } catch(e) {
+    micBtn.classList.remove('recording');
+    activeRecognition = null;
+  }
 }
 
 // ===== State =====
