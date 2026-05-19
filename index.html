@@ -9,13 +9,13 @@
 :root {
   --primary: #2563eb;
   --primary-light: #dbeafe;
-  --bg: #e8edf4;
+  --bg: #c8d8ec;
   --text: #1e293b;
-  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
-  background: var(--bg);
+  background: linear-gradient(180deg, #b8cce4 0%, #d4e0f0 100%);
   color: var(--text);
   height: 100dvh;
   display: flex;
@@ -26,20 +26,19 @@ body {
 /* Header */
 .header {
   background: linear-gradient(135deg, #1e3a5f, #2563eb);
-  padding: 10px 20px;
-  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px;
+  display: flex; align-items: center; gap: 10px;
   z-index: 20; flex-shrink: 0; color: #fff;
 }
 .header h1 { font-size: 14px; font-weight: 600; }
-.header p { font-size: 11px; opacity: 0.75; }
-.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .header-progress {
-  font-size: 12px; background: rgba(255,255,255,0.15);
-  padding: 4px 12px; border-radius: 12px;
+  font-size: 11px; background: rgba(255,255,255,0.15);
+  padding: 3px 10px; border-radius: 10px;
 }
 .vol-btn {
   background: rgba(255,255,255,0.15); border: none; color: #fff;
-  font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  font-size: 14px; width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
 }
 .vol-btn.muted { opacity: 0.5; }
 
@@ -47,7 +46,7 @@ body {
 .progress-bar { height: 3px; background: rgba(0,0,0,0.08); flex-shrink: 0; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #22d3ee); transition: width 0.5s; width: 0%; }
 
-/* Main area */
+/* Main container */
 .main {
   flex: 1;
   display: flex;
@@ -56,102 +55,80 @@ body {
   overflow: hidden;
 }
 
-/* Character - centered background */
-.character-bg {
+/* Character - full area background */
+.character-full {
   position: absolute;
-  bottom: 0; left: 50%;
+  bottom: 60px;
+  left: 50%;
   transform: translateX(-50%);
-  width: 340px;
-  pointer-events: none;
+  width: 380px;
   z-index: 1;
-  opacity: 0.15;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 30px rgba(0,0,0,0.15));
 }
 
-/* Character - side panel (visible) */
-.character-side {
-  position: absolute;
-  right: 20px; top: 20px;
-  width: 180px;
+/* Chat overlay on top of character */
+.chat-overlay {
+  position: relative;
+  flex: 1;
   z-index: 5;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  overflow: hidden;
 }
-.character-side img {
-  width: 180px;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  background: #fff;
-}
-.char-name {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 600; color: var(--primary);
-}
-.char-name .dot {
-  width: 7px; height: 7px; background: #22c55e; border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-.sound-wave {
-  display: flex; align-items: flex-end; gap: 2px; height: 16px;
-  opacity: 0; transition: opacity 0.3s;
-}
-.sound-wave.active { opacity: 1; }
-.sound-wave span {
-  width: 3px; background: var(--primary); border-radius: 1px;
-  animation: sw 0.8s ease-in-out infinite;
-}
-.sound-wave span:nth-child(1){height:5px;animation-delay:0s}
-.sound-wave span:nth-child(2){height:10px;animation-delay:.15s}
-.sound-wave span:nth-child(3){height:7px;animation-delay:.3s}
-.sound-wave span:nth-child(4){height:12px;animation-delay:.45s}
-.sound-wave span:nth-child(5){height:5px;animation-delay:.6s}
-@keyframes sw { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.3)} }
-
-/* Chat area */
-.chat-area {
+.chat-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
-  padding-right: 220px; /* space for character */
+  padding: 16px 16px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  z-index: 2;
+  gap: 8px;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Bot speech bubble */
+/* Bot message */
 .bot-msg {
-  max-width: 480px;
+  max-width: 85%;
+  align-self: flex-start;
   animation: fadeUp 0.3s ease;
 }
 .bot-msg .bubble {
-  background: #fff;
-  padding: 12px 18px;
-  border-radius: 20px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  padding: 10px 16px;
+  border-radius: 16px;
   border-top-left-radius: 4px;
   font-size: 14px;
   line-height: 1.7;
   box-shadow: var(--shadow);
-  position: relative;
   word-break: break-word;
+}
+.bot-msg .sender {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bot-msg .sender img {
+  width: 18px; height: 18px; border-radius: 50%;
+  object-fit: cover; object-position: top;
 }
 
 /* User message */
 .user-msg {
+  max-width: 75%;
   align-self: flex-end;
-  max-width: 70%;
   animation: fadeUp 0.3s ease;
 }
 .user-msg .bubble {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: var(--primary);
   color: #fff;
   padding: 10px 16px;
-  border-radius: 20px;
+  border-radius: 16px;
   border-bottom-right-radius: 4px;
   font-size: 14px;
   line-height: 1.6;
@@ -160,125 +137,166 @@ body {
 
 .typing-dots { display: flex; gap: 5px; padding: 4px 0; }
 .typing-dots span {
-  width: 7px; height: 7px; border-radius: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
   background: #94a3b8; animation: bounce 1.4s infinite;
 }
 .typing-dots span:nth-child(2){animation-delay:.2s}
 .typing-dots span:nth-child(3){animation-delay:.4s}
-@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
-@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
-/* Input */
-.input-area {
-  background: #fff;
-  padding: 14px 20px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-  flex-shrink: 0; z-index: 10;
+/* Sound wave next to character */
+.sound-wave-wrap {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(6px);
+  padding: 4px 12px;
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
-.choices, .multi-choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.sound-wave-wrap.active { opacity: 1; }
+.sound-wave-wrap .name {
+  font-size: 11px; font-weight: 600; color: var(--primary);
+}
+.sound-wave {
+  display: flex; align-items: flex-end; gap: 2px; height: 14px;
+}
+.sound-wave span {
+  width: 2px; background: var(--primary); border-radius: 1px;
+  animation: sw 0.8s ease-in-out infinite;
+}
+.sound-wave span:nth-child(1){height:4px;animation-delay:0s}
+.sound-wave span:nth-child(2){height:8px;animation-delay:.12s}
+.sound-wave span:nth-child(3){height:6px;animation-delay:.24s}
+.sound-wave span:nth-child(4){height:10px;animation-delay:.36s}
+.sound-wave span:nth-child(5){height:4px;animation-delay:.48s}
+@keyframes sw { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.3)} }
+
+/* Input area */
+.input-area {
+  background: rgba(37,99,235,0.95);
+  padding: 10px 16px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.choices, .multi-choices { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .choice-btn, .multi-btn {
-  padding: 10px 20px; border: 2px solid var(--primary); border-radius: 24px;
-  background: #fff; color: var(--primary); font-size: 14px;
+  padding: 8px 16px; border: 2px solid #fff; border-radius: 20px;
+  background: rgba(255,255,255,0.15); color: #fff; font-size: 13px;
   cursor: pointer; transition: all 0.15s; font-family: inherit; font-weight: 500;
 }
-.choice-btn:hover,.choice-btn:active { background: var(--primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
-.multi-btn.selected { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.choice-btn:hover,.choice-btn:active { background: #fff; color: var(--primary); }
+.multi-btn.selected { background: #fff; color: var(--primary); font-weight: 600; }
 .multi-submit {
-  width: 100%; padding: 13px; margin-top: 10px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff; border: none; border-radius: 14px;
-  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  width: 100%; padding: 11px; margin-top: 8px;
+  background: #fff; color: var(--primary);
+  border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .multi-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-.text-input-row { display: flex; gap: 10px; }
+
+.text-input-row { display: flex; gap: 8px; }
 .text-input-row input {
-  flex: 1; padding: 12px 18px; border: 2px solid #e2e8f0;
-  border-radius: 24px; font-size: 15px; font-family: inherit; outline: none;
+  flex: 1; padding: 10px 16px; border: none;
+  border-radius: 20px; font-size: 14px; font-family: inherit; outline: none;
+  background: #fff;
 }
-.text-input-row input:focus { border-color: var(--primary); }
 .text-input-row button {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff; border: none; font-size: 18px; cursor: pointer;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: #fff; color: var(--primary);
+  border: none; font-size: 16px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .text-input-row button:disabled { opacity: 0.4; }
 
-.chat-area::-webkit-scrollbar { width: 4px; }
-.chat-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-
-/* Mobile */
-@media (max-width: 640px) {
-  .character-side { right: 10px; top: 10px; width: 100px; }
-  .character-side img { width: 100px; border-radius: 12px; }
-  .chat-area { padding: 14px; padding-right: 124px; }
-  .bot-msg { max-width: 100%; }
-  .user-msg { max-width: 85%; }
-  .char-name { font-size: 10px; }
-  .choice-btn, .multi-btn { padding: 8px 14px; font-size: 13px; }
-  .character-bg { width: 250px; }
+.powered-by {
+  text-align: center; font-size: 10px; color: rgba(255,255,255,0.6);
+  margin-top: 4px;
 }
-@media (max-width: 400px) {
-  .character-side { width: 80px; }
-  .character-side img { width: 80px; }
-  .chat-area { padding-right: 100px; }
+
+.chat-scroll::-webkit-scrollbar { width: 3px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 2px; }
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .character-full { width: 300px; bottom: 50px; }
+  .choice-btn, .multi-btn { padding: 7px 12px; font-size: 12px; }
+  .bot-msg .bubble { font-size: 13px; padding: 8px 14px; }
+}
+@media (min-width: 768px) {
+  .character-full { width: 420px; }
+  .chat-scroll { max-width: 600px; margin: 0 auto; width: 100%; }
 }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <span style="font-size:20px">🏥</span>
-  <div>
-    <h1>事前問診票</h1>
-    <p>AIアシスタントがご案内します</p>
-  </div>
+  <span style="font-size:18px">🏥</span>
+  <h1>事前問診票</h1>
   <div class="header-right">
-    <div class="header-progress" id="headerStatus">0 / 0 問</div>
+    <div class="header-progress" id="headerStatus">0 / 0</div>
     <button class="vol-btn" id="volBtn">🔊</button>
   </div>
 </div>
 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
 <div class="main">
-  <!-- Background character (watermark) -->
-  <img class="character-bg" src="operator.png" alt="">
+  <!-- Character image - centered, large -->
+  <img class="character-full" src="operator.png" alt="あかり">
 
-  <!-- Side character -->
-  <div class="character-side">
-    <img src="operator.png" alt="あかり">
-    <div class="char-name"><span class="dot"></span>アシスタント あかり</div>
-    <div class="sound-wave" id="soundWave">
+  <!-- Sound wave indicator -->
+  <div class="sound-wave-wrap" id="soundWaveWrap">
+    <span class="name">あかり</span>
+    <div class="sound-wave">
       <span></span><span></span><span></span><span></span><span></span>
     </div>
   </div>
 
-  <div class="chat-area" id="chatArea"></div>
+  <!-- Chat messages overlay -->
+  <div class="chat-overlay">
+    <div class="chat-scroll" id="chatScroll"></div>
+  </div>
 </div>
 
-<div class="input-area" id="inputArea"></div>
+<div class="input-area" id="inputArea">
+  <div class="powered-by">Powered by AI Assistant</div>
+</div>
 
 <script>
-// ===== Audio =====
+// Audio
 let voiceOn = true, curAudio = null;
-const soundWave = document.getElementById('soundWave');
+const soundWaveWrap = document.getElementById('soundWaveWrap');
 const volBtn = document.getElementById('volBtn');
-volBtn.onclick = () => { voiceOn = !voiceOn; volBtn.textContent = voiceOn ? '🔊' : '🔇'; volBtn.classList.toggle('muted', !voiceOn); if (!voiceOn && curAudio) { curAudio.pause(); curAudio.currentTime = 0; soundWave.classList.remove('active'); } };
+volBtn.onclick = () => {
+  voiceOn = !voiceOn; volBtn.textContent = voiceOn ? '🔊' : '🔇';
+  volBtn.classList.toggle('muted', !voiceOn);
+  if (!voiceOn && curAudio) { curAudio.pause(); curAudio.currentTime = 0; soundWaveWrap.classList.remove('active'); }
+};
 
 function playAudio(id) {
   return new Promise(resolve => {
     if (!voiceOn) { resolve(); return; }
     const a = new Audio(`audio/${id}.mp3`);
     curAudio = a;
-    a.onplay = () => soundWave.classList.add('active');
-    a.onended = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
-    a.onerror = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
+    a.onplay = () => soundWaveWrap.classList.add('active');
+    a.onended = () => { soundWaveWrap.classList.remove('active'); curAudio = null; resolve(); };
+    a.onerror = () => { soundWaveWrap.classList.remove('active'); curAudio = null; resolve(); };
     a.play().catch(() => resolve());
   });
 }
 
-// ===== Questions =====
+// Questions
 const questions = [
   { id: "blood_type", text: "まず、血液型を教えてください。", type: "single", options: ["A型", "B型", "O型", "AB型", "不明"] },
   { id: "occupation", text: "ご職業を教えてください。", type: "text", placeholder: "例：会社員" },
@@ -313,7 +331,7 @@ const questions = [
   { id: "financial_detail_other", text: "「その他」の状況を教えてください。", type: "text", placeholder: "具体的にご記入ください", condition: { field: "financial_detail", match: v => Array.isArray(v) && v.includes("その他") } },
   { id: "financial_when", text: "その時期はいつ頃になりますか？", type: "single", options: ["1年以内", "1〜3年前", "3〜5年前", "5年以上前", "その他"], condition: { field: "financial_restructure", match: v => v && v.startsWith("ある") } },
   { id: "financial_when_other", text: "おおよその時期を教えてください。", type: "text", placeholder: "例：10年ほど前", condition: { field: "financial_when", match: v => v === "その他" } },
-  { id: "chest_sagging", text: "加齢や体重増加の影響で、男性でも胸部に脂肪がつき「垂れて見える」「たるんで見える」状態になることがあります。\n現在のご自身の状態に近いものはどちらでしょうか？", type: "single", options: ["胸部の垂れ・たるみが少し気になっている", "特に気になっていない"] },
+  { id: "chest_sagging", text: "加齢や体重増加の影響で、胸部に脂肪がつき「垂れて見える」「たるんで見える」状態になることがあります。\n現在のご自身の状態に近いものはどちらでしょうか？", type: "single", options: ["胸部の垂れ・たるみが少し気になっている", "特に気になっていない"] },
   { id: "scrotum_concern", text: "陰嚢の状態に関して当てはまるものを全て教えてください。", type: "multi", options: ["人から見られた時にシワが気になったことがある", "人から見られた時に縮みが気になったことがある", "自分自身がシワに対して気になったことがある", "自分自身が縮みに対して気になったことがある", "人から見られた時に小ささが気になったことがある", "自分自身が小ささに対して気になったことがある", "いずれも全く気になったことがない"] },
   { id: "darkening_concern", text: "陰茎や陰嚢周りの黒ずみに関して当てはまるものを全て教えてください。", type: "multi", options: ["人から見られた時に陰茎の黒ずみが気になったことがある", "自分自身が陰茎の黒ずみに対して気になったことがある", "人から見られた時に陰嚢周りの黒ずみが気になったことがある", "自分自身が陰嚢周りの黒ずみが気になったことがある", "いずれも全く気になったことがない"] },
   { id: "vaccine_recent", text: "インフルエンザ等のワクチンを１週間以内に接種しましたか？", type: "single", options: ["はい", "いいえ"] },
@@ -326,12 +344,12 @@ const questions = [
   { id: "illness_congenital", text: "「先天性の病気」の病名と発症時期を教えてください。\n（該当しない場合は「なし」）", type: "text", placeholder: "病名と時期をご記入ください", condition: { field: "major_illness", match: v => v === "はい" } },
   { id: "hypertension", text: "高血圧の既往歴がありますか？", type: "single", options: ["はい", "いいえ"] },
   { id: "hypertension_visiting", text: "現在は高血圧の症状で通院していますか？", type: "single", options: ["はい", "いいえ"], condition: { field: "hypertension", match: v => v === "はい" } },
-  { id: "hypertension_medicine", text: "高血圧の症状で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "hypertension", match: v => v === "はい" } },
+  { id: "hypertension_medicine", text: "高血圧で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "hypertension", match: v => v === "はい" } },
   { id: "bp_on_medicine", text: "内服時の血圧を教えてください。", type: "text", placeholder: "例：130/85", condition: { field: "hypertension", match: v => v === "はい" } },
   { id: "bp_off_medicine", text: "内服していない時の血圧を教えてください。", type: "text", placeholder: "例：145/95", condition: { field: "hypertension", match: v => v === "はい" } },
   { id: "diabetes", text: "糖尿病の既往歴がありますか？", type: "single", options: ["はい", "いいえ"] },
   { id: "diabetes_visiting", text: "現在は糖尿病の症状で通院していますか？", type: "single", options: ["はい", "いいえ"], condition: { field: "diabetes", match: v => v === "はい" } },
-  { id: "diabetes_medicine", text: "糖尿病の症状で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "diabetes", match: v => v === "はい" } },
+  { id: "diabetes_medicine", text: "糖尿病で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "diabetes", match: v => v === "はい" } },
   { id: "hba1c", text: "HbA1cの値を教えてください。", type: "text", placeholder: "例：6.5", condition: { field: "diabetes", match: v => v === "はい" } },
   { id: "hba1c_stable", text: "HbA1cの値は直近数か月間、安定していますか？", type: "single", options: ["安定している", "安定していない"], condition: { field: "diabetes", match: v => v === "はい" } },
   { id: "organ_disorder", text: "現在、腎機能・肝機能障害の症状はありますか？", type: "single", options: ["ある", "ない"] },
@@ -361,95 +379,87 @@ const questions = [
   { id: "visit_count_urology", text: "泌尿器科でのご来店回数を教えてください。", type: "text", placeholder: "例：1回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
 ];
 
-// ===== State =====
 const answers = {};
 let idx = 0, answered = 0;
-const chatArea = document.getElementById('chatArea');
+const chatScroll = document.getElementById('chatScroll');
 const inputArea = document.getElementById('inputArea');
 const progressFill = document.getElementById('progressFill');
 const headerStatus = document.getElementById('headerStatus');
+const poweredBy = '<div class="powered-by">Powered by AI Assistant</div>';
 
-function scroll() { requestAnimationFrame(() => { chatArea.scrollTop = chatArea.scrollHeight; }); }
-
+function scroll() { requestAnimationFrame(() => { chatScroll.scrollTop = chatScroll.scrollHeight; }); }
 function updateProgress() {
   const t = questions.filter(q => !q.condition || q.condition.match(answers[q.condition.field])).length;
-  progressFill.style.width = Math.round((answered / t) * 100) + '%';
-  headerStatus.textContent = `${answered} / ${t} 問`;
+  progressFill.style.width = Math.round((answered/t)*100)+'%';
+  headerStatus.textContent = `${answered} / ${t}`;
 }
 
 async function botMsg(text, audioId) {
   const d = document.createElement('div'); d.className = 'bot-msg';
-  d.innerHTML = '<div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  chatArea.appendChild(d); scroll();
+  d.innerHTML = `<div class="sender"><img src="operator.png" alt="">あかり</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  chatScroll.appendChild(d); scroll();
   await new Promise(r => setTimeout(r, 400));
-  d.querySelector('.bubble').innerHTML = text.replace(/\n/g, '<br>');
+  d.querySelector('.bubble').innerHTML = text.replace(/\n/g,'<br>');
   scroll();
   if (audioId) await playAudio(audioId);
 }
-
 function userMsg(text) {
   const d = document.createElement('div'); d.className = 'user-msg';
   d.innerHTML = `<div class="bubble">${text}</div>`;
-  chatArea.appendChild(d); scroll();
+  chatScroll.appendChild(d); scroll();
 }
 
 function renderSingle(q) {
   const d = document.createElement('div'); d.className = 'choices';
   q.options.forEach(o => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = o;
-    b.onclick = () => { userMsg(o); answers[q.id]=o; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+    b.onclick = () => { userMsg(o); answers[q.id]=o; answered++; inputArea.innerHTML=poweredBy; updateProgress(); next(); };
     d.appendChild(b); });
-  inputArea.innerHTML=''; inputArea.appendChild(d);
+  inputArea.innerHTML=''; inputArea.appendChild(d); inputArea.insertAdjacentHTML('beforeend', poweredBy);
 }
-
 function renderMulti(q) {
   const sel = new Set(); const d = document.createElement('div'); d.className = 'multi-choices';
   q.options.forEach(o => { const b = document.createElement('button'); b.className = 'multi-btn'; b.textContent = o;
     b.onclick = () => {
-      const ex = ["特になし","いずれも全く気になったことがない"];
+      const ex=["特になし","いずれも全く気になったことがない"];
       if(ex.includes(o)){sel.clear();sel.add(o);d.querySelectorAll('.multi-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')}
       else{ex.forEach(e=>{sel.delete(e);d.querySelectorAll('.multi-btn').forEach(x=>{if(x.textContent===e)x.classList.remove('selected')})});if(sel.has(o)){sel.delete(o);b.classList.remove('selected')}else{sel.add(o);b.classList.add('selected')}}
-      s.disabled=sel.size===0; };
-    d.appendChild(b); });
-  const s = document.createElement('button'); s.className='multi-submit'; s.textContent='決定'; s.disabled=true;
-  s.onclick = () => { const v=[...sel]; userMsg(v.join('、')); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
-  d.appendChild(s); inputArea.innerHTML=''; inputArea.appendChild(d);
+      s.disabled=sel.size===0;};d.appendChild(b);});
+  const s=document.createElement('button');s.className='multi-submit';s.textContent='決定';s.disabled=true;
+  s.onclick=()=>{const v=[...sel];userMsg(v.join('、'));answers[q.id]=v;answered++;inputArea.innerHTML=poweredBy;updateProgress();next();};
+  d.appendChild(s);inputArea.innerHTML='';inputArea.appendChild(d);inputArea.insertAdjacentHTML('beforeend',poweredBy);
 }
-
 function renderText(q) {
-  const d = document.createElement('div'); d.className = 'text-input-row';
-  const i = document.createElement('input'); i.type=q.inputType==='number'?'tel':(q.inputType||'text'); i.placeholder=q.placeholder||''; i.autocomplete='off';
-  const b = document.createElement('button'); b.innerHTML='&#10148;'; b.disabled=true;
-  i.oninput = () => { b.disabled=!i.value.trim(); };
-  const go = () => { const v=i.value.trim(); if(!v)return; userMsg(v); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
-  i.onkeydown = e => { if(e.key==='Enter')go(); }; b.onclick=go;
-  d.appendChild(i); d.appendChild(b); inputArea.innerHTML=''; inputArea.appendChild(d);
+  const d=document.createElement('div');d.className='text-input-row';
+  const i=document.createElement('input');i.type=q.inputType==='number'?'tel':(q.inputType||'text');i.placeholder=q.placeholder||'';i.autocomplete='off';
+  const b=document.createElement('button');b.innerHTML='&#10148;';b.disabled=true;
+  i.oninput=()=>{b.disabled=!i.value.trim()};
+  const go=()=>{const v=i.value.trim();if(!v)return;userMsg(v);answers[q.id]=v;answered++;inputArea.innerHTML=poweredBy;updateProgress();next();};
+  i.onkeydown=e=>{if(e.key==='Enter')go()};b.onclick=go;
+  d.appendChild(i);d.appendChild(b);inputArea.innerHTML='';inputArea.appendChild(d);inputArea.insertAdjacentHTML('beforeend',poweredBy);
   setTimeout(()=>i.focus(),100);
 }
-
-function shouldShow(q) { if(!q.condition) return true; return q.condition.match(answers[q.condition.field]); }
+function shouldShow(q){if(!q.condition)return true;return q.condition.match(answers[q.condition.field]);}
 
 async function next() {
-  while(idx<questions.length){ if(shouldShow(questions[idx]))break; idx++; }
-  if(idx>=questions.length){ await done(); return; }
-  const q=questions[idx]; idx++;
-  await botMsg(q.text, q.id);
-  switch(q.type){ case 'single':renderSingle(q);break; case 'multi':renderMulti(q);break; case 'text':renderText(q);break; }
+  while(idx<questions.length){if(shouldShow(questions[idx]))break;idx++;}
+  if(idx>=questions.length){await done();return;}
+  const q=questions[idx];idx++;
+  await botMsg(q.text,q.id);
+  switch(q.type){case'single':renderSingle(q);break;case'multi':renderMulti(q);break;case'text':renderText(q);break;}
   scroll();
 }
-
 async function done() {
-  inputArea.innerHTML=''; headerStatus.textContent='回答完了'; progressFill.style.width='100%';
+  inputArea.innerHTML=poweredBy;headerStatus.textContent='完了';progressFill.style.width='100%';
   await botMsg('すべての質問にお答えいただき、ありがとうございました！\n\nご回答内容はスタッフに共有されます。\n来院時にスムーズにご案内いたしますので、少々お待ちください。','complete');
-  console.log('=== 回答データ ===', JSON.stringify(answers, null, 2));
-  const b=document.createElement('button'); b.className='multi-submit'; b.textContent='回答内容を確認する';
-  b.onclick=()=>{ inputArea.innerHTML=''; let s='<b>ご回答の一覧</b><br><br>';
-    questions.forEach(q=>{if(answers[q.id]!==undefined){const v=Array.isArray(answers[q.id])?answers[q.id].join('、'):answers[q.id]; s+=`<b>${q.text.split('\n')[0].replace(/（複数選択可）/,'')}</b><br>→ ${v}<br><br>`;}});
-    const d=document.createElement('div');d.className='bot-msg';d.innerHTML=`<div class="bubble" style="font-size:13px;max-height:50vh;overflow-y:auto">${s}</div>`;chatArea.appendChild(d);scroll(); };
-  inputArea.appendChild(b);
+  console.log('=== 回答データ ===',JSON.stringify(answers,null,2));
+  const b=document.createElement('button');b.className='multi-submit';b.textContent='回答内容を確認する';
+  b.onclick=()=>{inputArea.innerHTML=poweredBy;let s='<b>ご回答の一覧</b><br><br>';
+    questions.forEach(q=>{if(answers[q.id]!==undefined){const v=Array.isArray(answers[q.id])?answers[q.id].join('、'):answers[q.id];s+=`<b>${q.text.split('\n')[0].replace(/（複数選択可）/,'')}</b><br>→ ${v}<br><br>`;}});
+    const d=document.createElement('div');d.className='bot-msg';d.innerHTML=`<div class="bubble" style="font-size:13px;max-height:50vh;overflow-y:auto">${s}</div>`;chatScroll.appendChild(d);scroll();};
+  inputArea.innerHTML='';inputArea.appendChild(b);inputArea.insertAdjacentHTML('beforeend',poweredBy);
 }
 
-// Start
-(async()=>{ updateProgress();
+(async()=>{updateProgress();
   await botMsg('こんにちは！アシスタントのあかりです。\n本日は事前問診票のご記入をお願いいたします。','greeting1');
   await botMsg('1問ずつお聞きしますので、ボタンを押すか入力してお答えください。\nそれでは始めましょう！','greeting2');
   next();
