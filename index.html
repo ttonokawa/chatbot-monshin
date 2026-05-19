@@ -168,33 +168,47 @@ body {
 @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
-/* Input */
+/* Input - now inline in chat area */
 .input-area {
-  background: #fff;
-  padding: 14px 20px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-  flex-shrink: 0; z-index: 10;
+  display: none; /* hidden, choices rendered inline */
 }
-.choices, .multi-choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+/* Inline input block in chat */
+.inline-input {
+  animation: fadeUp 0.3s ease;
+  padding: 16px 0;
+  max-width: 480px;
+}
+
+/* White blur backdrop when answering */
+.input-backdrop {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+
+.choices, .multi-choices { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .choice-btn, .multi-btn {
-  padding: 10px 20px; border: 2px solid var(--primary); border-radius: 24px;
-  background: #fff; color: var(--primary); font-size: 14px;
+  padding: 12px 24px; border: 2px solid var(--primary); border-radius: 24px;
+  background: #fff; color: var(--primary); font-size: 15px;
   cursor: pointer; transition: all 0.15s; font-family: inherit; font-weight: 500;
 }
 .choice-btn:hover,.choice-btn:active { background: var(--primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
 .multi-btn.selected { background: var(--primary-light); color: var(--primary); font-weight: 600; }
 .multi-submit {
-  width: 100%; padding: 13px; margin-top: 10px;
+  width: 100%; padding: 14px; margin-top: 12px;
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #fff; border: none; border-radius: 14px;
-  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .multi-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 .text-input-row { display: flex; gap: 10px; }
 .text-input-row input {
-  flex: 1; padding: 12px 18px; border: 2px solid #e2e8f0;
-  border-radius: 24px; font-size: 15px; font-family: inherit; outline: none;
+  flex: 1; padding: 14px 18px; border: 2px solid #e2e8f0;
+  border-radius: 24px; font-size: 16px; font-family: inherit; outline: none;
+  background: #fff;
 }
 .text-input-row input:focus { border-color: var(--primary); }
 .text-input-row button {
@@ -216,7 +230,7 @@ body {
   .bot-msg { max-width: 100%; }
   .user-msg { max-width: 85%; }
   .char-name { font-size: 10px; }
-  .choice-btn, .multi-btn { padding: 8px 14px; font-size: 13px; }
+  .choice-btn, .multi-btn { padding: 10px 18px; font-size: 14px; }
   .character-bg { width: 250px; }
 }
 @media (max-width: 400px) {
@@ -393,15 +407,25 @@ function userMsg(text) {
   chatArea.appendChild(d); scroll();
 }
 
+let currentInputEl = null;
+function removeInput() { if (currentInputEl) { currentInputEl.remove(); currentInputEl = null; } }
+
 function renderSingle(q) {
+  removeInput();
+  const wrap = document.createElement('div'); wrap.className = 'inline-input';
+  const bd = document.createElement('div'); bd.className = 'input-backdrop';
   const d = document.createElement('div'); d.className = 'choices';
   q.options.forEach(o => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = o;
-    b.onclick = () => { userMsg(o); answers[q.id]=o; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+    b.onclick = () => { removeInput(); userMsg(o); answers[q.id]=o; answered++; updateProgress(); next(); };
     d.appendChild(b); });
-  inputArea.innerHTML=''; inputArea.appendChild(d);
+  bd.appendChild(d); wrap.appendChild(bd);
+  chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
 }
 
 function renderMulti(q) {
+  removeInput();
+  const wrap = document.createElement('div'); wrap.className = 'inline-input';
+  const bd = document.createElement('div'); bd.className = 'input-backdrop';
   const sel = new Set(); const d = document.createElement('div'); d.className = 'multi-choices';
   q.options.forEach(o => { const b = document.createElement('button'); b.className = 'multi-btn'; b.textContent = o;
     b.onclick = () => {
@@ -411,18 +435,23 @@ function renderMulti(q) {
       s.disabled=sel.size===0; };
     d.appendChild(b); });
   const s = document.createElement('button'); s.className='multi-submit'; s.textContent='決定'; s.disabled=true;
-  s.onclick = () => { const v=[...sel]; userMsg(v.join('、')); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
-  d.appendChild(s); inputArea.innerHTML=''; inputArea.appendChild(d);
+  s.onclick = () => { const v=[...sel]; removeInput(); userMsg(v.join('、')); answers[q.id]=v; answered++; updateProgress(); next(); };
+  bd.appendChild(d); bd.appendChild(s); wrap.appendChild(bd);
+  chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
 }
 
 function renderText(q) {
+  removeInput();
+  const wrap = document.createElement('div'); wrap.className = 'inline-input';
+  const bd = document.createElement('div'); bd.className = 'input-backdrop';
   const d = document.createElement('div'); d.className = 'text-input-row';
   const i = document.createElement('input'); i.type=q.inputType==='number'?'tel':(q.inputType||'text'); i.placeholder=q.placeholder||''; i.autocomplete='off';
   const b = document.createElement('button'); b.innerHTML='&#10148;'; b.disabled=true;
   i.oninput = () => { b.disabled=!i.value.trim(); };
-  const go = () => { const v=i.value.trim(); if(!v)return; userMsg(v); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+  const go = () => { const v=i.value.trim(); if(!v)return; removeInput(); userMsg(v); answers[q.id]=v; answered++; updateProgress(); next(); };
   i.onkeydown = e => { if(e.key==='Enter')go(); }; b.onclick=go;
-  d.appendChild(i); d.appendChild(b); inputArea.innerHTML=''; inputArea.appendChild(d);
+  d.appendChild(i); d.appendChild(b); bd.appendChild(d); wrap.appendChild(bd);
+  chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
   setTimeout(()=>i.focus(),100);
 }
 
@@ -438,14 +467,17 @@ async function next() {
 }
 
 async function done() {
-  inputArea.innerHTML=''; headerStatus.textContent='回答完了'; progressFill.style.width='100%';
+  removeInput(); headerStatus.textContent='回答完了'; progressFill.style.width='100%';
   await botMsg('すべての質問にお答えいただき、ありがとうございました！\n\nご回答内容はスタッフに共有されます。\n来院時にスムーズにご案内いたしますので、少々お待ちください。','complete');
   console.log('=== 回答データ ===', JSON.stringify(answers, null, 2));
+  const wrap = document.createElement('div'); wrap.className = 'inline-input';
+  const bd = document.createElement('div'); bd.className = 'input-backdrop';
   const b=document.createElement('button'); b.className='multi-submit'; b.textContent='回答内容を確認する';
-  b.onclick=()=>{ inputArea.innerHTML=''; let s='<b>ご回答の一覧</b><br><br>';
+  b.onclick=()=>{ wrap.remove(); let s='<b>ご回答の一覧</b><br><br>';
     questions.forEach(q=>{if(answers[q.id]!==undefined){const v=Array.isArray(answers[q.id])?answers[q.id].join('、'):answers[q.id]; s+=`<b>${q.text.split('\n')[0].replace(/（複数選択可）/,'')}</b><br>→ ${v}<br><br>`;}});
     const d=document.createElement('div');d.className='bot-msg';d.innerHTML=`<div class="bubble" style="font-size:13px;max-height:50vh;overflow-y:auto">${s}</div>`;chatArea.appendChild(d);scroll(); };
-  inputArea.appendChild(b);
+  bd.appendChild(b); wrap.appendChild(bd);
+  chatArea.appendChild(wrap); scroll();
 }
 
 // Start
