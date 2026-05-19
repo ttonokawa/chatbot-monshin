@@ -376,37 +376,119 @@ const questions = [
 ];
 
 // ===== State =====
-const answers = {};
-let idx = 0, answered = 0;
+const STORAGE_KEY = 'monshin_answers';
+const answers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+let idx = 0, answered = Object.keys(answers).length;
 const chatArea = document.getElementById('chatArea');
 const inputArea = document.getElementById('inputArea');
 const progressFill = document.getElementById('progressFill');
 const headerStatus = document.getElementById('headerStatus');
 
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(answers)); }
 function scroll() { requestAnimationFrame(() => { chatArea.scrollTop = chatArea.scrollHeight; }); }
 
 function updateProgress() {
+  answered = Object.keys(answers).length;
   const t = questions.filter(q => !q.condition || q.condition.match(answers[q.condition.field])).length;
   progressFill.style.width = Math.round((answered / t) * 100) + '%';
   headerStatus.textContent = `${answered} / ${t} 問`;
 }
 
-async function botMsg(text, audioId) {
+async function botMsg(text, audioId, speak = true) {
   const d = document.createElement('div'); d.className = 'bot-msg';
-  d.innerHTML = '<div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  chatArea.appendChild(d); scroll();
-  await new Promise(r => setTimeout(r, 400));
-  d.querySelector('.bubble').innerHTML = text.replace(/\n/g, '<br>');
+  if (speak) {
+    d.innerHTML = '<div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+    chatArea.appendChild(d); scroll();
+    await new Promise(r => setTimeout(r, 400));
+    d.querySelector('.bubble').innerHTML = text.replace(/\n/g, '<br>');
+  } else {
+    d.innerHTML = `<div class="bubble">${text.replace(/\n/g, '<br>')}</div>`;
+    chatArea.appendChild(d);
+  }
   scroll();
-  if (audioId) await playAudio(audioId);
+  if (audioId && speak) await playAudio(audioId);
 }
 
-function userMsg(text) {
+function userMsg(text, qId) {
   const d = document.createElement('div'); d.className = 'user-msg';
-  d.innerHTML = `<div class="bubble">${text}</div>`;
+  d.setAttribute('data-qid', qId);
+  d.innerHTML = `<div class="bubble" style="cursor:pointer" title="タップで修正">${text}</div>`;
+  d.querySelector('.bubble').onclick = () => editAnswer(qId, d);
   chatArea.appendChild(d); scroll();
 }
 
+// ===== Edit Answer =====
+function editAnswer(qId, msgEl) {
+  const q = questions.find(x => x.id === qId);
+  if (!q) return;
+  removeInput();
+  // Insert edit UI right after the message
+  const wrap = document.createElement('div'); wrap.className = 'inline-input';
+  const bd = document.createElement('div'); bd.className = 'input-backdrop';
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:12px;color:#64748b;margin-bottom:8px;text-align:center;';
+  label.textContent = '回答を修正';
+  bd.appendChild(label);
+
+  if (q.type === 'single') {
+    const d = document.createElement('div'); d.className = 'choices';
+    q.options.forEach(o => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = o;
+      if (o === answers[qId]) b.style.cssText = 'background:var(--primary);color:#fff;';
+      b.onclick = () => {
+        answers[qId] = o; saveState(); updateProgress();
+        msgEl.querySelector('.bubble').textContent = o;
+        wrap.remove(); currentInputEl = null;
+      };
+      d.appendChild(b); });
+    bd.appendChild(d);
+  } else if (q.type === 'multi') {
+    const prev = Array.isArray(answers[qId]) ? new Set(answers[qId]) : new Set();
+    const sel = new Set(prev);
+    const d = document.createElement('div'); d.className = 'multi-choices';
+    q.options.forEach(o => { const b = document.createElement('button'); b.className = 'multi-btn'; b.textContent = o;
+      if (sel.has(o)) b.classList.add('selected');
+      b.onclick = () => {
+        const ex = ["特になし","いずれも全く気になったことがない"];
+        if(ex.includes(o)){sel.clear();sel.add(o);d.querySelectorAll('.multi-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')}
+        else{ex.forEach(e=>{sel.delete(e);d.querySelectorAll('.multi-btn').forEach(x=>{if(x.textContent===e)x.classList.remove('selected')})});if(sel.has(o)){sel.delete(o);b.classList.remove('selected')}else{sel.add(o);b.classList.add('selected')}}
+        s.disabled=sel.size===0; };
+      d.appendChild(b); });
+    const s = document.createElement('button'); s.className='multi-submit'; s.textContent='修正を確定'; s.disabled=false;
+    s.onclick = () => {
+      const v = [...sel]; answers[qId] = v; saveState(); updateProgress();
+      msgEl.querySelector('.bubble').textContent = v.join('、');
+      wrap.remove(); currentInputEl = null;
+    };
+    bd.appendChild(d); bd.appendChild(s);
+  } else {
+    const d = document.createElement('div'); d.className = 'text-input-row';
+    const i = document.createElement('input'); i.type = q.inputType==='number'?'tel':(q.inputType||'text');
+    i.value = answers[qId] || ''; i.placeholder = q.placeholder || '';
+    const b = document.createElement('button'); b.innerHTML = '&#10148;'; b.disabled = !i.value.trim();
+    i.oninput = () => { b.disabled = !i.value.trim(); };
+    const go = () => {
+      const v = i.value.trim(); if (!v) return;
+      answers[qId] = v; saveState(); updateProgress();
+      msgEl.querySelector('.bubble').textContent = v;
+      wrap.remove(); currentInputEl = null;
+    };
+    i.onkeydown = e => { if (e.key === 'Enter') go(); }; b.onclick = go;
+    d.appendChild(i); d.appendChild(b); bd.appendChild(d);
+    setTimeout(() => i.focus(), 100);
+  }
+
+  const cancel = document.createElement('button');
+  cancel.style.cssText = 'margin-top:8px;background:none;border:none;color:#64748b;font-size:13px;cursor:pointer;width:100%;text-align:center;font-family:inherit;';
+  cancel.textContent = 'キャンセル';
+  cancel.onclick = () => { wrap.remove(); currentInputEl = null; };
+  bd.appendChild(cancel);
+
+  wrap.appendChild(bd);
+  msgEl.after(wrap); currentInputEl = wrap;
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ===== Input Rendering =====
 let currentInputEl = null;
 function removeInput() { if (currentInputEl) { currentInputEl.remove(); currentInputEl = null; } }
 
@@ -416,7 +498,7 @@ function renderSingle(q) {
   const bd = document.createElement('div'); bd.className = 'input-backdrop';
   const d = document.createElement('div'); d.className = 'choices';
   q.options.forEach(o => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = o;
-    b.onclick = () => { removeInput(); userMsg(o); answers[q.id]=o; answered++; updateProgress(); next(); };
+    b.onclick = () => { removeInput(); userMsg(o, q.id); answers[q.id]=o; saveState(); updateProgress(); next(); };
     d.appendChild(b); });
   bd.appendChild(d); wrap.appendChild(bd);
   chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
@@ -435,7 +517,7 @@ function renderMulti(q) {
       s.disabled=sel.size===0; };
     d.appendChild(b); });
   const s = document.createElement('button'); s.className='multi-submit'; s.textContent='決定'; s.disabled=true;
-  s.onclick = () => { const v=[...sel]; removeInput(); userMsg(v.join('、')); answers[q.id]=v; answered++; updateProgress(); next(); };
+  s.onclick = () => { const v=[...sel]; removeInput(); userMsg(v.join('、'), q.id); answers[q.id]=v; saveState(); updateProgress(); next(); };
   bd.appendChild(d); bd.appendChild(s); wrap.appendChild(bd);
   chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
 }
@@ -448,7 +530,7 @@ function renderText(q) {
   const i = document.createElement('input'); i.type=q.inputType==='number'?'tel':(q.inputType||'text'); i.placeholder=q.placeholder||''; i.autocomplete='off';
   const b = document.createElement('button'); b.innerHTML='&#10148;'; b.disabled=true;
   i.oninput = () => { b.disabled=!i.value.trim(); };
-  const go = () => { const v=i.value.trim(); if(!v)return; removeInput(); userMsg(v); answers[q.id]=v; answered++; updateProgress(); next(); };
+  const go = () => { const v=i.value.trim(); if(!v)return; removeInput(); userMsg(v, q.id); answers[q.id]=v; saveState(); updateProgress(); next(); };
   i.onkeydown = e => { if(e.key==='Enter')go(); }; b.onclick=go;
   d.appendChild(i); d.appendChild(b); bd.appendChild(d); wrap.appendChild(bd);
   chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
@@ -480,11 +562,38 @@ async function done() {
   chatArea.appendChild(wrap); scroll();
 }
 
-// Start
-(async()=>{ updateProgress();
-  await botMsg('こんにちは！AIアシスタントでございます。\n本日はクリニックにお越しいただき、誠にありがとうございます。\nはじめに、問診票のご記入をお願いいたします。','greeting1');
-  await botMsg('1問ずつお聞きしますので、ボタンを押すか入力してお答えください。\nそれでは始めましょう！','greeting2');
+// ===== Resume or Start Fresh =====
+async function resumeFromSaved() {
+  // Replay answered questions silently
+  await botMsg('こんにちは！AIアシスタントでございます。\n本日はクリニックにお越しいただき、誠にありがとうございます。\nはじめに、問診票のご記入をお願いいたします。', null, false);
+  await botMsg('前回の続きから再開します。', null, false);
+
+  while (idx < questions.length) {
+    const q = questions[idx];
+    if (!shouldShow(q)) { idx++; continue; }
+    if (answers[q.id] === undefined) break;
+    // Show Q&A silently
+    await botMsg(q.text, null, false);
+    const val = Array.isArray(answers[q.id]) ? answers[q.id].join('、') : answers[q.id];
+    userMsg(val, q.id);
+    idx++;
+  }
+  updateProgress();
+  // Now continue with next unanswered
   next();
+}
+
+(async () => {
+  if (Object.keys(answers).length > 0) {
+    // Has saved progress - resume
+    await resumeFromSaved();
+  } else {
+    // Fresh start
+    updateProgress();
+    await botMsg('こんにちは！AIアシスタントでございます。\n本日はクリニックにお越しいただき、誠にありがとうございます。\nはじめに、問診票のご記入をお願いいたします。','greeting1');
+    await botMsg('1問ずつお聞きしますので、ボタンを押すか入力してお答えください。\nそれでは始めましょう！','greeting2');
+    next();
+  }
 })();
 </script>
 </body>
