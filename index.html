@@ -300,8 +300,8 @@ function playAudio(id) {
     const a = new Audio(`audio/${id}.mp3`);
     curAudio = a;
     a.onplay = () => soundWave.classList.add('active');
-    a.onended = () => { soundWave.classList.remove('active'); a.src = ''; curAudio = null; resolve(); };
-    a.onerror = () => { soundWave.classList.remove('active'); a.src = ''; curAudio = null; resolve(); };
+    a.onended = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
+    a.onerror = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
     a.play().catch(() => resolve());
   });
 }
@@ -400,40 +400,42 @@ function toggleSpeechInput(inputEl, micBtn, sendBtn) {
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
-  // Stop any playing audio synchronously
-  if (curAudio) { curAudio.pause(); curAudio.src = ''; soundWave.classList.remove('active'); curAudio = null; }
+  // Stop any playing audio
+  if (curAudio) {
+    curAudio.pause();
+    curAudio.onended = null;
+    curAudio.onerror = null;
+    soundWave.classList.remove('active');
+    curAudio = null;
+  }
 
   // Must call start() synchronously in click handler for mobile
-  try {
-    const rec = new SR();
-    rec.lang = 'ja-JP';
-    rec.interimResults = true;
-    rec.continuous = false;
-    activeRecognition = rec;
-    micBtn.classList.add('recording');
+  const rec = new SR();
+  rec.lang = 'ja-JP';
+  rec.interimResults = true;
+  rec.continuous = false;
 
-    rec.onresult = (e) => {
-      let text = '';
-      for (let i = 0; i < e.results.length; i++) {
-        text += e.results[i][0].transcript;
-      }
-      inputEl.value = text;
-      sendBtn.disabled = !text.trim();
-      inputEl.dispatchEvent(new Event('input'));
-    };
-    rec.onend = () => {
-      micBtn.classList.remove('recording');
-      activeRecognition = null;
-    };
-    rec.onerror = () => {
-      micBtn.classList.remove('recording');
-      activeRecognition = null;
-    };
-    rec.start();
-  } catch(e) {
+  rec.onresult = (e) => {
+    let text = '';
+    for (let i = 0; i < e.results.length; i++) {
+      text += e.results[i][0].transcript;
+    }
+    inputEl.value = text;
+    sendBtn.disabled = !text.trim();
+    inputEl.dispatchEvent(new Event('input'));
+  };
+  rec.onend = () => {
     micBtn.classList.remove('recording');
     activeRecognition = null;
-  }
+  };
+  rec.onerror = () => {
+    micBtn.classList.remove('recording');
+    activeRecognition = null;
+  };
+
+  activeRecognition = rec;
+  micBtn.classList.add('recording');
+  rec.start();
 }
 
 // ===== State =====
