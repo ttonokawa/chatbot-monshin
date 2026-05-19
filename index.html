@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>事前問診票 - AIアシスタント</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --bg: #e8edf4;
+  --text: #1e293b;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 20; flex-shrink: 0; color: #fff;
+}
+.header h1 { font-size: 14px; font-weight: 600; }
+.header p { font-size: 11px; opacity: 0.75; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.header-progress {
+  font-size: 12px; background: rgba(255,255,255,0.15);
+  padding: 4px 12px; border-radius: 12px;
+}
+.vol-btn {
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+}
+.vol-btn.muted { opacity: 0.5; }
+
+/* Progress */
+.progress-bar { height: 3px; background: rgba(0,0,0,0.08); flex-shrink: 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #22d3ee); transition: width 0.5s; width: 0%; }
+
+/* Main area */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Character - centered background */
+.character-bg {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.15;
+}
+
+/* Character - side panel (visible) */
+.character-side {
+  position: absolute;
+  right: 20px; top: 20px;
+  width: 180px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.character-side img {
+  width: 180px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+.char-name {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--primary);
+}
+.char-name .dot {
+  width: 7px; height: 7px; background: #22c55e; border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.sound-wave {
+  display: flex; align-items: flex-end; gap: 2px; height: 16px;
+  opacity: 0; transition: opacity 0.3s;
+}
+.sound-wave.active { opacity: 1; }
+.sound-wave span {
+  width: 3px; background: var(--primary); border-radius: 1px;
+  animation: sw 0.8s ease-in-out infinite;
+}
+.sound-wave span:nth-child(1){height:5px;animation-delay:0s}
+.sound-wave span:nth-child(2){height:10px;animation-delay:.15s}
+.sound-wave span:nth-child(3){height:7px;animation-delay:.3s}
+.sound-wave span:nth-child(4){height:12px;animation-delay:.45s}
+.sound-wave span:nth-child(5){height:5px;animation-delay:.6s}
+@keyframes sw { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.3)} }
+
+/* Chat area */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-right: 220px; /* space for character */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Bot speech bubble */
+.bot-msg {
+  max-width: 480px;
+  animation: fadeUp 0.3s ease;
+}
+.bot-msg .bubble {
+  background: #fff;
+  padding: 12px 18px;
+  border-radius: 20px;
+  border-top-left-radius: 4px;
+  font-size: 14px;
+  line-height: 1.7;
+  box-shadow: var(--shadow);
+  position: relative;
+  word-break: break-word;
+}
+
+/* User message */
+.user-msg {
+  align-self: flex-end;
+  max-width: 70%;
+  animation: fadeUp 0.3s ease;
+}
+.user-msg .bubble {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 20px;
+  border-bottom-right-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow: var(--shadow);
+}
+
+.typing-dots { display: flex; gap: 5px; padding: 4px 0; }
+.typing-dots span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #94a3b8; animation: bounce 1.4s infinite;
+}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* Input */
+.input-area {
+  background: #fff;
+  padding: 14px 20px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  flex-shrink: 0; z-index: 10;
+}
+.choices, .multi-choices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.choice-btn, .multi-btn {
+  padding: 10px 20px; border: 2px solid var(--primary); border-radius: 24px;
+  background: #fff; color: var(--primary); font-size: 14px;
+  cursor: pointer; transition: all 0.15s; font-family: inherit; font-weight: 500;
+}
+.choice-btn:hover,.choice-btn:active { background: var(--primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+.multi-btn.selected { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.multi-submit {
+  width: 100%; padding: 13px; margin-top: 10px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.multi-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+.text-input-row { display: flex; gap: 10px; }
+.text-input-row input {
+  flex: 1; padding: 12px 18px; border: 2px solid #e2e8f0;
+  border-radius: 24px; font-size: 15px; font-family: inherit; outline: none;
+}
+.text-input-row input:focus { border-color: var(--primary); }
+.text-input-row button {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff; border: none; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.text-input-row button:disabled { opacity: 0.4; }
+
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .character-side { right: 10px; top: 10px; width: 100px; }
+  .character-side img { width: 100px; border-radius: 12px; }
+  .chat-area { padding: 14px; padding-right: 124px; }
+  .bot-msg { max-width: 100%; }
+  .user-msg { max-width: 85%; }
+  .char-name { font-size: 10px; }
+  .choice-btn, .multi-btn { padding: 8px 14px; font-size: 13px; }
+  .character-bg { width: 250px; }
+}
+@media (max-width: 400px) {
+  .character-side { width: 80px; }
+  .character-side img { width: 80px; }
+  .chat-area { padding-right: 100px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span style="font-size:20px">🏥</span>
+  <div>
+    <h1>事前問診票</h1>
+    <p>AIアシスタントがご案内します</p>
+  </div>
+  <div class="header-right">
+    <div class="header-progress" id="headerStatus">0 / 0 問</div>
+    <button class="vol-btn" id="volBtn">🔊</button>
+  </div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="main">
+  <!-- Background character (watermark) -->
+  <img class="character-bg" src="operator.png" alt="">
+
+  <!-- Side character -->
+  <div class="character-side">
+    <img src="operator.png" alt="あかり">
+    <div class="char-name"><span class="dot"></span>アシスタント あかり</div>
+    <div class="sound-wave" id="soundWave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chatArea"></div>
+</div>
+
+<div class="input-area" id="inputArea"></div>
+
+<script>
+// ===== Audio =====
+let voiceOn = true, curAudio = null;
+const soundWave = document.getElementById('soundWave');
+const volBtn = document.getElementById('volBtn');
+volBtn.onclick = () => { voiceOn = !voiceOn; volBtn.textContent = voiceOn ? '🔊' : '🔇'; volBtn.classList.toggle('muted', !voiceOn); if (!voiceOn && curAudio) { curAudio.pause(); curAudio.currentTime = 0; soundWave.classList.remove('active'); } };
+
+function playAudio(id) {
+  return new Promise(resolve => {
+    if (!voiceOn) { resolve(); return; }
+    const a = new Audio(`audio/${id}.mp3`);
+    curAudio = a;
+    a.onplay = () => soundWave.classList.add('active');
+    a.onended = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
+    a.onerror = () => { soundWave.classList.remove('active'); curAudio = null; resolve(); };
+    a.play().catch(() => resolve());
+  });
+}
+
+// ===== Questions =====
+const questions = [
+  { id: "blood_type", text: "まず、血液型を教えてください。", type: "single", options: ["A型", "B型", "O型", "AB型", "不明"] },
+  { id: "occupation", text: "ご職業を教えてください。", type: "text", placeholder: "例：会社員" },
+  { id: "job_detail", text: "お仕事の内容を教えてください。", type: "text", placeholder: "例：営業職" },
+  { id: "height", text: "身長を教えてください（cm）。", type: "text", placeholder: "例：170", inputType: "number" },
+  { id: "weight", text: "体重を教えてください（kg）。", type: "text", placeholder: "例：65", inputType: "number" },
+  { id: "family_status", text: "現在のご家庭の状況を教えてください。", type: "single", options: ["独身", "既婚(子あり)", "既婚(子なし)", "学生"] },
+  { id: "photo_consent", text: "施術写真を院内及びHPで学術的症例としての使用にご協力いただけますでしょうか？\n※個人を特定されるような顔写真、名前、カルテNOなどは使用しません。", type: "single", options: ["はい", "いいえ"] },
+  { id: "how_found", text: "クリニックを知ったきっかけは何ですか？", type: "single", options: ["Web広告", "ラジオ", "喫煙所の動画", "看板", "特になし"] },
+  { id: "alcohol", text: "お酒をどのくらいの頻度で飲みますか？", type: "single", options: ["飲まない", "１回/週", "２～３回/週", "４～５回/週", "６～７回/週"] },
+  { id: "smoking", text: "タバコをどのくらいの頻度で吸いますか？", type: "single", options: ["吸わない", "０～５本/日", "６～１０本/日", "１箱/日", "それ以上"] },
+  { id: "travel", text: "旅行にどのくらいの頻度で行きますか？", type: "single", options: ["０～１回/年", "２～３回/年", "４～５回/年", "６～８回/年", "それ以上"] },
+  { id: "income", text: "ご年収はいくらですか？", type: "single", options: ["２００万未満", "２００～４００万", "４００～６００万", "６００～８００万", "８００～１０００万", "それ以上"] },
+  { id: "insurance", text: "保険証の種別を教えてください。", type: "single", options: ["社会保険", "国民健康保険"] },
+  { id: "interest_treatments", text: "下記の治療にご興味はございますか？（複数選択可）", type: "multi", options: ["クマ取り", "二重手術", "AGA", "医療脱毛", "多汗症/ワキガ", "テストステロン", "花粉症", "ED", "医療ダイエット", "特になし"] },
+  { id: "phimosis_type", text: "あなたの包茎の種類はどれにあたりますか？", type: "single", options: ["真性包茎", "カントン包茎", "仮性包茎", "剥けている", "わからない", "他院で手術済み"] },
+  { id: "treatment_reason", text: "治療のきっかけを教えてください。（複数選択可）", type: "multi", options: ["包茎を直したい", "亀頭を大きくしたい", "陰茎を長くしたい"] },
+  { id: "appearance_concern", text: "見た目について教えてください。（複数選択可）", type: "multi", options: ["温泉や公衆浴場での見た目", "トイレでの見た目", "将来の介護や健康管理", "男としての自信を持ちたい", "特になし"] },
+  { id: "hygiene_concern", text: "衛生面について教えてください。（複数選択可）", type: "multi", options: ["匂い", "病気や感染のリスク", "カス（垢）", "かゆみ", "蒸れやすい", "過去に炎症や感染", "特になし"] },
+  { id: "erection_confidence", text: "勃起力に自信がありますか？", type: "single", options: ["自信がある", "自信がない", "自信を持ちたい", "気にならない"] },
+  { id: "ed_improvement", text: "EDをどのように改善したいとお考えですか？", type: "single", options: ["根本から改善し長期的に維持したい", "ある程度根本改善をしていきたい", "現在の状態を維持し予防したい", "短期間だけでも効果を発揮したい", "一時的に効果を実感できる方法を試したい"] },
+  { id: "sex_frequency", text: "性行為の頻度を教えてください。", type: "single", options: ["まだ経験がない", "１回未満/月", "１～３回/月", "１～３回/週", "４回以上/週"] },
+  { id: "partner", text: "現在パートナー様はいらっしゃいますか？", type: "single", options: ["いる", "複数いる", "いない"] },
+  { id: "family_consulted", text: "本日来院する旨を、ご家族/パートナー様にご相談されていますか？", type: "single", options: ["相談している", "相談していない", "内緒にしたい"] },
+  { id: "current_concerns", text: "現在の症状について不安なこと、聞きたいこと、心配なことなどがあれば教えてください。", type: "text", placeholder: "特になければ「なし」とご入力ください" },
+  { id: "payment_method", text: "お支払い方法のご希望はありますか？（複数選択可）", type: "multi", options: ["現金", "カード", "デビットカード", "分割払い", "引き落とし"] },
+  { id: "work_stress", text: "お仕事のご負担やストレスは強い方ですか？\n（勤務時間・人間関係・プレッシャーなど）", type: "single", options: ["はい", "いいえ"] },
+  { id: "lifestyle_disorder", text: "最近、睡眠や食事のリズムが乱れていたり、ストレスを感じることはありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "financial_pressure", text: "現在、生活面や金銭面でのプレッシャーをどの程度感じていますか？", type: "single", options: ["強く感じている", "ある程度感じている", "あまり感じていない", "まったく感じていない"] },
+  { id: "financial_restructure", text: "これまでに金銭的な理由で生活の見直しや立て直しを行ったご経験はありますか？", type: "single", options: ["ある（現在も影響が続いている）", "ある（すでに解決している）", "検討したことはあるが行っていない", "まったくない"] },
+  { id: "financial_detail", text: "当時の状況について教えてください。（複数選択可）", type: "multi", options: ["債務整理を行った", "自己破産を行った", "返済計画の大幅な見直しを行った", "ローン・借入の整理を行った", "その他"], condition: { field: "financial_restructure", match: v => v && v.startsWith("ある") } },
+  { id: "financial_detail_other", text: "「その他」の状況を教えてください。", type: "text", placeholder: "具体的にご記入ください", condition: { field: "financial_detail", match: v => Array.isArray(v) && v.includes("その他") } },
+  { id: "financial_when", text: "その時期はいつ頃になりますか？", type: "single", options: ["1年以内", "1〜3年前", "3〜5年前", "5年以上前", "その他"], condition: { field: "financial_restructure", match: v => v && v.startsWith("ある") } },
+  { id: "financial_when_other", text: "おおよその時期を教えてください。", type: "text", placeholder: "例：10年ほど前", condition: { field: "financial_when", match: v => v === "その他" } },
+  { id: "chest_sagging", text: "加齢や体重増加の影響で、男性でも胸部に脂肪がつき「垂れて見える」「たるんで見える」状態になることがあります。\n現在のご自身の状態に近いものはどちらでしょうか？", type: "single", options: ["胸部の垂れ・たるみが少し気になっている", "特に気になっていない"] },
+  { id: "scrotum_concern", text: "陰嚢の状態に関して当てはまるものを全て教えてください。", type: "multi", options: ["人から見られた時にシワが気になったことがある", "人から見られた時に縮みが気になったことがある", "自分自身がシワに対して気になったことがある", "自分自身が縮みに対して気になったことがある", "人から見られた時に小ささが気になったことがある", "自分自身が小ささに対して気になったことがある", "いずれも全く気になったことがない"] },
+  { id: "darkening_concern", text: "陰茎や陰嚢周りの黒ずみに関して当てはまるものを全て教えてください。", type: "multi", options: ["人から見られた時に陰茎の黒ずみが気になったことがある", "自分自身が陰茎の黒ずみに対して気になったことがある", "人から見られた時に陰嚢周りの黒ずみが気になったことがある", "自分自身が陰嚢周りの黒ずみが気になったことがある", "いずれも全く気になったことがない"] },
+  { id: "vaccine_recent", text: "インフルエンザ等のワクチンを１週間以内に接種しましたか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "vaccine_recent_date", text: "接種された日付を教えてください。", type: "text", placeholder: "例：2026/04/01", inputType: "date", condition: { field: "vaccine_recent", match: v => v === "はい" } },
+  { id: "vaccine_planned", text: "インフルエンザ等のワクチンをこれから接種する予定はございますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "vaccine_planned_date", text: "接種を予定されている日付を教えてください。", type: "text", placeholder: "例：2026/05/01", inputType: "date", condition: { field: "vaccine_planned", match: v => v === "はい" } },
+  { id: "major_illness", text: "これまで大きな病気、治療中の病気、先天性の病気はありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "illness_major", text: "「大きな病気」の病名と発症時期を教えてください。", type: "text", placeholder: "病名と時期をご記入ください", condition: { field: "major_illness", match: v => v === "はい" } },
+  { id: "illness_treating", text: "「治療中の病気」の病名と発症時期を教えてください。\n（該当しない場合は「なし」）", type: "text", placeholder: "病名と時期をご記入ください", condition: { field: "major_illness", match: v => v === "はい" } },
+  { id: "illness_congenital", text: "「先天性の病気」の病名と発症時期を教えてください。\n（該当しない場合は「なし」）", type: "text", placeholder: "病名と時期をご記入ください", condition: { field: "major_illness", match: v => v === "はい" } },
+  { id: "hypertension", text: "高血圧の既往歴がありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "hypertension_visiting", text: "現在は高血圧の症状で通院していますか？", type: "single", options: ["はい", "いいえ"], condition: { field: "hypertension", match: v => v === "はい" } },
+  { id: "hypertension_medicine", text: "高血圧の症状で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "hypertension", match: v => v === "はい" } },
+  { id: "bp_on_medicine", text: "内服時の血圧を教えてください。", type: "text", placeholder: "例：130/85", condition: { field: "hypertension", match: v => v === "はい" } },
+  { id: "bp_off_medicine", text: "内服していない時の血圧を教えてください。", type: "text", placeholder: "例：145/95", condition: { field: "hypertension", match: v => v === "はい" } },
+  { id: "diabetes", text: "糖尿病の既往歴がありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "diabetes_visiting", text: "現在は糖尿病の症状で通院していますか？", type: "single", options: ["はい", "いいえ"], condition: { field: "diabetes", match: v => v === "はい" } },
+  { id: "diabetes_medicine", text: "糖尿病の症状で現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "diabetes", match: v => v === "はい" } },
+  { id: "hba1c", text: "HbA1cの値を教えてください。", type: "text", placeholder: "例：6.5", condition: { field: "diabetes", match: v => v === "はい" } },
+  { id: "hba1c_stable", text: "HbA1cの値は直近数か月間、安定していますか？", type: "single", options: ["安定している", "安定していない"], condition: { field: "diabetes", match: v => v === "はい" } },
+  { id: "organ_disorder", text: "現在、腎機能・肝機能障害の症状はありますか？", type: "single", options: ["ある", "ない"] },
+  { id: "organ_disorder_part", text: "症状のある部位を教えてください。", type: "text", placeholder: "例：肝臓", condition: { field: "organ_disorder", match: v => v === "ある" } },
+  { id: "organ_disorder_medicine", text: "お薬の名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "organ_disorder", match: v => v === "ある" } },
+  { id: "asthma", text: "喘息の既往歴がありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "asthma_symptoms", text: "現在症状はありますか？", type: "single", options: ["症状あり", "症状なし"], condition: { field: "asthma", match: v => v === "はい" } },
+  { id: "asthma_last_attack", text: "最終発作時期を教えてください。", type: "text", placeholder: "例：2025年3月", condition: { field: "asthma", match: v => v === "はい" } },
+  { id: "asthma_medicine", text: "現在服用中のお薬があれば、名称を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "asthma", match: v => v === "はい" } },
+  { id: "asthma_nsaid", text: "ロキソニン、ボルタレンでの発作経験はありますか？", type: "single", options: ["あり", "なし"], condition: { field: "asthma", match: v => v === "はい" } },
+  { id: "sleep_apnea", text: "無呼吸症候群と診断されたことはありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "fertility", text: "妊活中ですか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "food_allergy", text: "食べ物のアレルギーがありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "food_allergy_detail", text: "アレルギーの「食品名」と「発作時の症状」を教えてください。", type: "text", placeholder: "例：エビ - 蕁麻疹", condition: { field: "food_allergy", match: v => v === "はい" } },
+  { id: "drug_allergy", text: "お薬のアレルギーがありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "drug_allergy_detail", text: "アレルギーの「薬品名」と「発作時の症状」を教えてください。", type: "text", placeholder: "例：ペニシリン - 発疹", condition: { field: "drug_allergy", match: v => v === "はい" } },
+  { id: "local_anesthesia", text: "局所麻酔の経験はありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "anesthesia_issue", text: "麻酔時に何か体に異常はありましたか？\nある場合は具体的な症状を教えてください。", type: "text", placeholder: "なければ「なし」", condition: { field: "local_anesthesia", match: v => v === "はい" } },
+  { id: "blood_draw_issue", text: "今まで採血、点滴などで具合が悪くなったことはありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "blood_draw_detail", text: "「具体的な症状」と「時期」を教えてください。", type: "text", placeholder: "例：貧血で倒れた・2024年", condition: { field: "blood_draw_issue", match: v => v === "はい" } },
+  { id: "current_medicine", text: "お薬の服用はありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "current_medicine_name", text: "「お薬の名前」を教えてください。", type: "text", placeholder: "お薬の名称をご記入ください", condition: { field: "current_medicine", match: v => v === "はい" } },
+  { id: "hair_removal_interest", text: "脱毛の完全都度払いに興味はありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "previous_visit", text: "過去に当店でカウンセリングや施術等を受けられたことはありますか？", type: "single", options: ["はい", "いいえ"] },
+  { id: "visit_count_surgery", text: "外科でのご来店回数を教えてください。", type: "text", placeholder: "例：2回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
+  { id: "visit_count_diet", text: "医療痩身でのご来店回数を教えてください。", type: "text", placeholder: "例：0回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
+  { id: "visit_count_urology", text: "泌尿器科でのご来店回数を教えてください。", type: "text", placeholder: "例：1回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
+];
+
+// ===== State =====
+const answers = {};
+let idx = 0, answered = 0;
+const chatArea = document.getElementById('chatArea');
+const inputArea = document.getElementById('inputArea');
+const progressFill = document.getElementById('progressFill');
+const headerStatus = document.getElementById('headerStatus');
+
+function scroll() { requestAnimationFrame(() => { chatArea.scrollTop = chatArea.scrollHeight; }); }
+
+function updateProgress() {
+  const t = questions.filter(q => !q.condition || q.condition.match(answers[q.condition.field])).length;
+  progressFill.style.width = Math.round((answered / t) * 100) + '%';
+  headerStatus.textContent = `${answered} / ${t} 問`;
+}
+
+async function botMsg(text, audioId) {
+  const d = document.createElement('div'); d.className = 'bot-msg';
+  d.innerHTML = '<div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  chatArea.appendChild(d); scroll();
+  await new Promise(r => setTimeout(r, 400));
+  d.querySelector('.bubble').innerHTML = text.replace(/\n/g, '<br>');
+  scroll();
+  if (audioId) await playAudio(audioId);
+}
+
+function userMsg(text) {
+  const d = document.createElement('div'); d.className = 'user-msg';
+  d.innerHTML = `<div class="bubble">${text}</div>`;
+  chatArea.appendChild(d); scroll();
+}
+
+function renderSingle(q) {
+  const d = document.createElement('div'); d.className = 'choices';
+  q.options.forEach(o => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = o;
+    b.onclick = () => { userMsg(o); answers[q.id]=o; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+    d.appendChild(b); });
+  inputArea.innerHTML=''; inputArea.appendChild(d);
+}
+
+function renderMulti(q) {
+  const sel = new Set(); const d = document.createElement('div'); d.className = 'multi-choices';
+  q.options.forEach(o => { const b = document.createElement('button'); b.className = 'multi-btn'; b.textContent = o;
+    b.onclick = () => {
+      const ex = ["特になし","いずれも全く気になったことがない"];
+      if(ex.includes(o)){sel.clear();sel.add(o);d.querySelectorAll('.multi-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')}
+      else{ex.forEach(e=>{sel.delete(e);d.querySelectorAll('.multi-btn').forEach(x=>{if(x.textContent===e)x.classList.remove('selected')})});if(sel.has(o)){sel.delete(o);b.classList.remove('selected')}else{sel.add(o);b.classList.add('selected')}}
+      s.disabled=sel.size===0; };
+    d.appendChild(b); });
+  const s = document.createElement('button'); s.className='multi-submit'; s.textContent='決定'; s.disabled=true;
+  s.onclick = () => { const v=[...sel]; userMsg(v.join('、')); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+  d.appendChild(s); inputArea.innerHTML=''; inputArea.appendChild(d);
+}
+
+function renderText(q) {
+  const d = document.createElement('div'); d.className = 'text-input-row';
+  const i = document.createElement('input'); i.type=q.inputType==='number'?'tel':(q.inputType||'text'); i.placeholder=q.placeholder||''; i.autocomplete='off';
+  const b = document.createElement('button'); b.innerHTML='&#10148;'; b.disabled=true;
+  i.oninput = () => { b.disabled=!i.value.trim(); };
+  const go = () => { const v=i.value.trim(); if(!v)return; userMsg(v); answers[q.id]=v; answered++; inputArea.innerHTML=''; updateProgress(); next(); };
+  i.onkeydown = e => { if(e.key==='Enter')go(); }; b.onclick=go;
+  d.appendChild(i); d.appendChild(b); inputArea.innerHTML=''; inputArea.appendChild(d);
+  setTimeout(()=>i.focus(),100);
+}
+
+function shouldShow(q) { if(!q.condition) return true; return q.condition.match(answers[q.condition.field]); }
+
+async function next() {
+  while(idx<questions.length){ if(shouldShow(questions[idx]))break; idx++; }
+  if(idx>=questions.length){ await done(); return; }
+  const q=questions[idx]; idx++;
+  await botMsg(q.text, q.id);
+  switch(q.type){ case 'single':renderSingle(q);break; case 'multi':renderMulti(q);break; case 'text':renderText(q);break; }
+  scroll();
+}
+
+async function done() {
+  inputArea.innerHTML=''; headerStatus.textContent='回答完了'; progressFill.style.width='100%';
+  await botMsg('すべての質問にお答えいただき、ありがとうございました！\n\nご回答内容はスタッフに共有されます。\n来院時にスムーズにご案内いたしますので、少々お待ちください。','complete');
+  console.log('=== 回答データ ===', JSON.stringify(answers, null, 2));
+  const b=document.createElement('button'); b.className='multi-submit'; b.textContent='回答内容を確認する';
+  b.onclick=()=>{ inputArea.innerHTML=''; let s='<b>ご回答の一覧</b><br><br>';
+    questions.forEach(q=>{if(answers[q.id]!==undefined){const v=Array.isArray(answers[q.id])?answers[q.id].join('、'):answers[q.id]; s+=`<b>${q.text.split('\n')[0].replace(/（複数選択可）/,'')}</b><br>→ ${v}<br><br>`;}});
+    const d=document.createElement('div');d.className='bot-msg';d.innerHTML=`<div class="bubble" style="font-size:13px;max-height:50vh;overflow-y:auto">${s}</div>`;chatArea.appendChild(d);scroll(); };
+  inputArea.appendChild(b);
+}
+
+// Start
+(async()=>{ updateProgress();
+  await botMsg('こんにちは！アシスタントのあかりです。\n本日は事前問診票のご記入をお願いいたします。','greeting1');
+  await botMsg('1問ずつお聞きしますので、ボタンを押すか入力してお答えください。\nそれでは始めましょう！','greeting2');
+  next();
+})();
+</script>
+</body>
+</html>
