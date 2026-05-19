@@ -219,6 +219,20 @@ body {
 }
 .text-input-row button:disabled { opacity: 0.4; }
 
+/* Mic button */
+.mic-btn {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: #fff; color: #64748b;
+  border: 2px solid #e2e8f0; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all 0.2s;
+}
+.mic-btn.recording {
+  background: #fee2e2; border-color: #ef4444; color: #ef4444;
+  animation: micPulse 1s infinite;
+}
+@keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+
 .chat-area::-webkit-scrollbar { width: 4px; }
 .chat-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
@@ -374,6 +388,43 @@ const questions = [
   { id: "visit_count_diet", text: "医療痩身でのご来店回数を教えてください。", type: "text", placeholder: "例：0回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
   { id: "visit_count_urology", text: "泌尿器科でのご来店回数を教えてください。", type: "text", placeholder: "例：1回", inputType: "number", condition: { field: "previous_visit", match: v => v === "はい" } },
 ];
+
+// ===== Speech Recognition =====
+let activeRecognition = null;
+function toggleSpeechInput(inputEl, micBtn, sendBtn) {
+  if (activeRecognition) {
+    activeRecognition.stop();
+    activeRecognition = null;
+    micBtn.classList.remove('recording');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const rec = new SR();
+  rec.lang = 'ja-JP';
+  rec.interimResults = true;
+  rec.continuous = false;
+  activeRecognition = rec;
+  micBtn.classList.add('recording');
+
+  rec.onresult = (e) => {
+    let text = '';
+    for (let i = 0; i < e.results.length; i++) {
+      text += e.results[i][0].transcript;
+    }
+    inputEl.value = text;
+    sendBtn.disabled = !text.trim();
+  };
+  rec.onend = () => {
+    micBtn.classList.remove('recording');
+    activeRecognition = null;
+  };
+  rec.onerror = () => {
+    micBtn.classList.remove('recording');
+    activeRecognition = null;
+  };
+  rec.start();
+}
 
 // ===== State =====
 const STORAGE_KEY = 'monshin_answers';
@@ -532,7 +583,13 @@ function renderText(q) {
   i.oninput = () => { b.disabled=!i.value.trim(); };
   const go = () => { const v=i.value.trim(); if(!v)return; removeInput(); userMsg(v, q.id); answers[q.id]=v; saveState(); updateProgress(); next(); };
   i.onkeydown = e => { if(e.key==='Enter')go(); }; b.onclick=go;
-  d.appendChild(i); d.appendChild(b); bd.appendChild(d); wrap.appendChild(bd);
+  // Mic button
+  const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤';
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    mic.style.display = 'none';
+  }
+  mic.onclick = () => toggleSpeechInput(i, mic, b);
+  d.appendChild(i); d.appendChild(mic); d.appendChild(b); bd.appendChild(d); wrap.appendChild(bd);
   chatArea.appendChild(wrap); currentInputEl = wrap; scroll();
   setTimeout(()=>i.focus(),100);
 }
