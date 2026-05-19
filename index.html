@@ -400,6 +400,8 @@ function toggleSpeechInput(inputEl, micBtn, sendBtn) {
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
+  // Stop any playing audio to avoid conflict
+  if (curAudio) { curAudio.pause(); curAudio.currentTime = 0; soundWave.classList.remove('active'); curAudio = null; }
   const rec = new SR();
   rec.lang = 'ja-JP';
   rec.interimResults = true;
@@ -524,7 +526,10 @@ function editAnswer(qId, msgEl) {
       wrap.remove(); currentInputEl = null;
     };
     i.onkeydown = e => { if (e.key === 'Enter') go(); }; b.onclick = go;
-    d.appendChild(i); d.appendChild(b); bd.appendChild(d);
+    const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤';
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) mic.style.display = 'none';
+    mic.onclick = () => toggleSpeechInput(i, mic, b);
+    d.appendChild(i); d.appendChild(mic); d.appendChild(b); bd.appendChild(d);
     setTimeout(() => i.focus(), 100);
   }
 
